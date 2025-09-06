@@ -77,6 +77,20 @@ def logout():
 def page_accueil():
     return render_template('index.html')
 
+    # --- ROUTE D'INITIALISATION DE LA BASE DE DONNÉES ---
+
+@app.route('/url-initialiser-ok')
+def init_database():
+    """Route secrete pour initialiser la DB une seule fois."""
+    try:
+        with app.app_context():
+            db.create_all()
+        return "Tables de la base de donnees creees avec succes !"
+    except Exception as e:
+        return f"Une erreur est survenue: {e}"
+
+# ---------------------------------------------------
+
 @app.route('/creer', methods=['POST'])
 @login_required
 def creer_page_lien():
