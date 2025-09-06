@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Résultat</title>
+    <style>
+        body { font-family: sans-serif; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Voici votre chanson :</h1>
+    
+    <h2>{{ resultats.nom_chanson }}</h2>
+    <p>par {{ resultats.nom_artiste }}</p>
+    <img src="{{ resultats.pochette }}" alt="Pochette de l'album" width="300">
+    
+    <h3>Liens de streaming :</h3>
+    <ul>
+        {% if resultats.lien_spotify %}
+            <li><a href="{{ resultats.lien_spotify }}" target="_blank">Écouter sur Spotify</a></li>
+        {% endif %}
+
+        {% if resultats.lien_youtube %}
+            <li><a href="{{ resultats.lien_youtube }}" target="_blank">Écouter sur YouTube Music</a></li>
+        {% endif %}
+        
+        {% if resultats.lien_itunes %}
+            <li><a href="{{ resultats.lien_itunes }}" target="_blank">Écouter sur Apple Music / iTunes</a></li>
+        {% endif %}
+    </ul>
+    
+    <br><br>
+    <a href="/">Retour</a>
+</body>
+</html>

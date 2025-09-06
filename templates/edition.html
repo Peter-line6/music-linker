@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ 'Édition du lien' if mode == 'edition' else 'Création du lien' }}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f0f2f5; padding: 20px;}
+        .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 1em; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        button { padding: 12px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        h1, h3 { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;}
+        hr { border: none; border-top: 1px solid #eee; margin: 25px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ 'Éditer le lien' if mode == 'edition' else 'Vérifier et sauvegarder le lien' }}</h1>
+        <p>
+            <strong>{{ resultats.item_type }} </strong> {{ resultats.nom_chanson }}
+            {% if resultats.item_type and resultats.item_type.lower() != 'artist' %}<br><strong>Artiste :</strong> {{ resultats.nom_artiste }}{% endif %}
+        </p>
+
+        <form action="{{ url_for('sauvegarder_lien') }}" method="post">
+            
+            {% if mode == 'edition' %}
+                <input type="hidden" name="mode_edition" value="1">
+                <input type="hidden" name="slug_original" value="{{ resultats.slug_existant }}">
+            {% endif %}
+            
+            <input type="hidden" name="track_name" value="{{ resultats.nom_chanson }}">
+            <input type="hidden" name="artist_name" value="{{ resultats.nom_artiste }}">
+            <input type="hidden" name="album_cover_url" value="{{ resultats.pochette }}">
+            <input type="hidden" name="item_type" value="{{ resultats.item_type }}">
+
+            <div class="form-group">
+                <label for="slug">URL Personnalisée (slug) *</label>
+                <input type="text" id="slug" name="slug" required value="{{ resultats.slug_existant or '' }}">
+            </div>
+
+            <hr>
+            <h3>Liens Automatiques</h3>
+
+            <div class="form-group">
+                <label for="spotify_url"><span>🎵</span> Lien Spotify</label>
+                <input type="text" id="spotify_url" name="spotify_url" value="{{ resultats.lien_spotify or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="youtube_url"><span>📺</span> Lien YouTube Music</label>
+                <input type="text" id="youtube_url" name="youtube_url" value="{{ resultats.lien_youtube or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="itunes_url"><span>🍎</span> Lien Apple Music / iTunes</label>
+                <input type="text" id="itunes_url" name="itunes_url" value="{{ resultats.lien_itunes or '' }}">
+            </div>
+
+            <hr>
+            <h3>Liens Manuels</h3>
+            <div class="form-group">
+                <label for="tidal_url"><span>🌊</span> Lien Tidal</label>
+                <input type="text" id="tidal_url" name="tidal_url" value="{{ resultats.tidal_url or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="deezer_url"><span>🎶</span> Lien Deezer</label>
+                <input type="text" id="deezer_url" name="deezer_url" value="{{ resultats.deezer_url or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="qobuz_url"><span>🎼</span> Lien Qobuz</label>
+                <input type="text" id="qobuz_url" name="qobuz_url" value="{{ resultats.qobuz_url or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="bandcamp_url"><span>🏕️</span> Lien Bandcamp</label>
+                <input type="text" id="bandcamp_url" name="bandcamp_url" value="{{ resultats.bandcamp_url or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="steam_url"><span>🎮</span> Lien Steam</label>
+                <input type="text" id="steam_url" name="steam_url" value="{{ resultats.steam_url or '' }}">
+            </div>
+             <div class="form-group">
+                <label for="steam_description"><span>📝</span> Description Steam (Optionnel)</label>
+                <textarea id="steam_description" name="steam_description" rows="5">{{ resultats.steam_description or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="vgmdb_url"><span>🕹️</span> Lien VGMdb</label>
+                <input type="text" id="vgmdb_url" name="vgmdb_url" value="{{ resultats.vgmdb_url or '' }}">
+            </div>
+            
+            <button type="submit">Sauvegarder les modifications</button>
+        </form>
+    </div>
+</body>
+</html>
