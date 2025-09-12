@@ -44,12 +44,38 @@
             background-size: cover;
             background-position: center;
             background-image: linear-gradient(to top, rgba(20, 20, 20, 0.7) 30%, transparent 120%), var(--bg-image);
-            filter: blur(50px) brightness(0.7);
+            filter: blur(40px) brightness(1.3);
             transform: scale(1.1);
             z-index: -1;
             opacity: 0.8;
         }
         
+        .header-content {
+            position: relative; /* Nécessaire pour superposer le texte */
+            text-align: center;
+            color: white; /* Le texte sera blanc sur l'image */
+            margin-bottom: 30px;
+        }
+img.album-cover { 
+            width: 100%; /* L'image prend toute la largeur */
+            height: auto;
+            display: block; 
+            /* On ne garde que les arrondis du haut */
+            border-radius: 12px 12px 0 0; 
+        }
+        .header-text {
+            /* On ajoute un fond et un espacement */
+            background-color: #ffffff;
+            padding: 25px;
+            text-align: center;
+            /* On arrondit les coins du bas pour suivre le conteneur */
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Ombre légère pour séparer */
+        }
+        .header-text h1, .header-text h2 {
+            /* On s'assure que le texte a la bonne couleur */
+            color: #1c1e21; 
+        }
 
         .container { 
             max-width: 450px; 
@@ -76,7 +102,7 @@
             font-weight: normal;
             font-size: 1.1em;
             margin-top: 0;
-            margin-bottom: 25px;
+            margin-bottom: 10px;
         }
         .cover-art {
             display: block;
@@ -151,6 +177,42 @@
             border-radius: 8px; 
         }
 
+.info-link {
+        text-align: center;
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    .info-link a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center; /* Centre le contenu horizontalement */
+        width: calc(50% - 20px); /* Prend 50% de la largeur du conteneur, moins l'espacement */
+        max-width: 250px; /* Limite la largeur max comme les autres boutons */
+        text-decoration: none;
+        color: #333; /* Couleur de texte plus foncée */
+        font-weight: bold; /* Texte en gras */
+        font-style: normal; /* Pas d'italique */
+        font-size: 0.9em;
+        padding: 12px 15px; /* Augmente le padding */
+        border: 1px solid #ffffff; /* Une bordure légère */
+        border-radius: 8px; /* Bords arrondis */
+        background-color: #fff; /* Fond blanc */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Une légère ombre */
+        transition: all 0.2s ease;
+    }
+    .info-link a:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px); /* Petit effet de survol */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    /* S'assurer que l'icône VGMdb dans ce bloc est bien alignée */
+.info-link a .icon-vgmdb {
+        margin-left: 10px; /* Plus d'espace à gauche */
+        margin-right: -2px; /* Recule légèrement à droite pour compenser le padding de l'icône */
+        vertical-align: middle;
+        transform: scale(1.1); /* J'ai légèrement réduit la taille pour un meilleur équilibre visuel */
+    }
+
 hr.custom-hr {
             border: none; /* On retire le style par défaut de la balise hr */
             height: 1px; /* Une ligne très fine */
@@ -184,7 +246,7 @@ hr.custom-hr {
             transition: filter 0.2s ease;
         }
         .icon-spotify { background-image: url("https://www.scdn.co/i/_global/favicon.png"); }
-        .icon-youtube { background-image: url("https://music.youtube.com/favicon.ico"); }
+        .icon-youtube { background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/6a/Youtube_Music_icon.svg"); /* ... */ }
         .icon-itunes, .icon-appleMusic { background-image: url("https://www.apple.com/favicon.ico"); }
         .icon-tidal { background-image: url("https://tidal.com/favicon.ico"); }
         .icon-deezer { background-image: url("https://www.deezer.com/favicon.ico"); }
@@ -228,23 +290,36 @@ hr.custom-hr {
 
     <div class="container">
         {% if session.get('logged_in') %}
-            <div class="admin-link">
+<div class="admin-link">
+                <a href="{{ url_for('admin_dashboard') }}">Tableau de Bord</a> |
                 <a href="{{ url_for('page_edition', slug=page.slug) }}">Éditer ce lien</a> |
                 <a href="{{ url_for('logout') }}">Se déconnecter</a>
             </div>
         {% endif %}
 
-        {% if page.album_cover_url %}
-            <img src="{{ page.album_cover_url }}" alt="Pochette d'album" class="cover-art">
-        {% endif %}
-
-        <h1 id="main-title">{{ page.track_name }}</h1>
-        <h2>{{ page.artist_name }}</h2>
+        <div class="header-content">
+            {% if page.album_cover_url %}
+                <img src="{{ page.album_cover_url }}" alt="Pochette" class="album-cover">
+            {% endif %}
+            <div class="header-text">
+                <h1 id="main-title">{{ page.track_name }}</h1>
+                <h2>{{ page.artist_name }}</h2>
+            </div>
+        </div>
 
         {% if page.steam_description %}
             <div class="description-box">
                 {{ page.steam_description|trim }}
             </div>
+
+            {# NOUVEAU BLOC POUR VGMDB #}
+{% if page.vgmdb_url %}
+<div class="info-link">
+    <a href="{{ page.vgmdb_url }}" target="_blank">
+        Learn more on VGMdB<span class="icon-vgmdb"></span>
+    </a>
+</div>
+{% endif %}
             <hr class="custom-hr">
         {% endif %}
 
@@ -272,9 +347,6 @@ hr.custom-hr {
             {% endif %}
             {% if page.steam_url %}
                 <li><a href="{{ page.steam_url }}" class="steam" target="_blank"><span class="icon-steam"></span>Steam</a></li>
-            {% endif %}
-            {% if page.vgmdb_url %}
-                <li><a href="{{ page.vgmdb_url }}" class="vgmdb" target="_blank"><span class="icon-vgmdb"></span>VGMdb</a></li>
             {% endif %}
         </ul>
         

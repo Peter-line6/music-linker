@@ -41,6 +41,9 @@ class LinkPage(db.Model):
     steam_url = db.Column(db.String(500), nullable=True)
     steam_description = db.Column(db.Text, nullable=True)
     vgmdb_url = db.Column(db.String(500), nullable=True)
+
+    # NOUVELLE COLONNE POUR LA DATE DE CREATION
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
     def __repr__(self):
         return f'<LinkPage {self.slug}>'
 
@@ -83,7 +86,11 @@ def public_home():
 @app.route('/admin')
 @login_required
 def admin_dashboard():
-    return render_template('index.html')
+    page = request.args.get('page', 1, type=int)
+    links = LinkPage.query.order_by(LinkPage.created_at.desc()).paginate(
+        page=page, per_page=50
+    )
+    return render_template('index.html', links=links)
 
 # La route pour créer un lien est maintenant sur /admin/creer
 @app.route('/creer', methods=['POST'])
@@ -144,16 +151,27 @@ def page_edition(slug):
 @login_required
 def sauvegarder_lien():
     slug_form = request.form.get('slug', '').lower().replace(" ", "-")
-    if not slug_form: return "Erreur : Le champ 'slug' est obligatoire."
+    if not slug_form:
+        return "Erreur : Le champ 'slug' est obligatoire."
+
+    # On vérifie si on est en mode édition
     if 'mode_edition' in request.form:
         slug_original = request.form['slug_original']
         page = LinkPage.query.get_or_404(slug_original)
+        
+        # Si le slug a changé, on vérifie que le nouveau n'est pas déjà pris
         if slug_original != slug_form:
-            if LinkPage.query.get(slug_form): return "Erreur : Ce nouveau slug est deja utilise."
+            if LinkPage.query.get(slug_form):
+                return "Erreur : Ce nouveau slug est deja utilise par un autre lien."
+    
+    # Sinon, c'est une création
     else:
-        if LinkPage.query.get(slug_form): return "Erreur : Cette URL personnalisee existe deja."
+        if LinkPage.query.get(slug_form):
+            return "Erreur : Cette URL personnalisee existe deja."
         page = LinkPage()
         db.session.add(page)
+
+    # Mise à jour ou assignation des champs pour la création ET l'édition
     page.slug = slug_form
     page.track_name = request.form.get('track_name')
     page.artist_name = request.form.get('artist_name')
@@ -169,6 +187,7 @@ def sauvegarder_lien():
     page.steam_url = request.form.get('steam_url')
     page.vgmdb_url = request.form.get('vgmdb_url')
     page.steam_description = request.form.get('steam_description')
+    
     db.session.commit()
     return redirect(url_for('page_publique', slug=slug_form))
 

@@ -18,10 +18,6 @@
 <body>
     <div class="container">
         <h1>{{ 'Éditer le lien' if mode == 'edition' else 'Vérifier et sauvegarder le lien' }}</h1>
-        <p>
-            <strong>{{ resultats.item_type }} </strong> {{ resultats.nom_chanson }}
-            {% if resultats.item_type and resultats.item_type.lower() != 'artist' %}<br><strong>Artiste :</strong> {{ resultats.nom_artiste }}{% endif %}
-        </p>
 
         <form action="{{ url_for('sauvegarder_lien') }}" method="post">
             
@@ -30,8 +26,15 @@
                 <input type="hidden" name="slug_original" value="{{ resultats.slug_existant }}">
             {% endif %}
             
-            <input type="hidden" name="track_name" value="{{ resultats.nom_chanson }}">
-            <input type="hidden" name="artist_name" value="{{ resultats.nom_artiste }}">
+            <div class="form-group">
+                <label for="track_name">{{ resultats.item_type }}</label>
+                <input type="text" id="track_name" name="track_name" value="{{ resultats.nom_chanson or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="artist_name">Artiste</label>
+                <input type="text" id="artist_name" name="artist_name" value="{{ resultats.nom_artiste or '' }}">
+            </div>
+
             <input type="hidden" name="album_cover_url" value="{{ resultats.pochette }}">
             <input type="hidden" name="item_type" value="{{ resultats.item_type }}">
 
