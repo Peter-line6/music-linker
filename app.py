@@ -1,5 +1,6 @@
 import os
 import requests
+from dotenv import load_dotenv # Importez la nouvelle bibliothèque
 from flask import Flask, render_template, request, redirect, url_for, session
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
