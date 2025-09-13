@@ -18,24 +18,21 @@
         .pagination a { margin: 0 10px; text-decoration: none; color: #007bff; }
         .pagination span { margin: 0 10px; color: #999; }
         
-        /* NOUVEAUX STYLES */
         td a img:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             transition: all 0.2s ease;
         }
         .copy-cell {
-    cursor: pointer;
-    /* NOUVEAU : Ajout de la transition pour un effet fluide */
-    transition: background-color 0.2s ease-in-out;
-}
-.copy-cell:hover {
-    background-color: #f9f9f9;
-}
-/* NOUVEAU : Style de la cellule une fois copiée */
-.copy-cell.copied {
-    background-color: #d4edda; /* Un vert pastel de confirmation */
-}
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .copy-cell:hover {
+            background-color: #f9f9f9;
+        }
+        .copy-cell.copied {
+            background-color: #d4edda;
+        }
     </style>
 </head>
 <body>
@@ -62,6 +59,7 @@
                     <th>Titre / Artiste</th>
                     <th>Type</th>
                     <th>Slug</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,6 +77,7 @@
                     </td>
                     <td>{{ link.item_type }}</td>
                     <td><a href="{{ url_for('page_publique', slug=link.slug) }}" target="_blank">/{{ link.slug }}</a></td>
+                    <td><a href="{{ url_for('page_edition', slug=link.slug) }}">Éditer</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -99,27 +98,24 @@
         </div>
     </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const copyCells = document.querySelectorAll('.copy-cell');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const copyCells = document.querySelectorAll('.copy-cell');
 
-        copyCells.forEach(cell => {
-            cell.addEventListener('click', function() {
-                const urlToCopy = this.dataset.url;
-                navigator.clipboard.writeText(urlToCopy).then(() => {
-                    // On ajoute une classe CSS pour l'effet visuel
-                    this.classList.add('copied');
-
-                    // On retire la classe après 0.5 seconde
-                    setTimeout(() => {
-                        this.classList.remove('copied');
-                    }, 500);
-                }).catch(err => {
-                    console.error('Erreur lors de la copie: ', err);
+            copyCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    const urlToCopy = this.dataset.url;
+                    navigator.clipboard.writeText(urlToCopy).then(() => {
+                        this.classList.add('copied');
+                        setTimeout(() => {
+                            this.classList.remove('copied');
+                        }, 1500);
+                    }).catch(err => {
+                        console.error('Erreur lors de la copie: ', err);
+                    });
                 });
             });
         });
-    });
-</script>
+    </script>
 </body>
 </html>

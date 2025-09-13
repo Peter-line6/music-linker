@@ -1,28 +1,35 @@
 import os
 import requests
-from dotenv import load_dotenv # Importez la nouvelle bibliothèque
-from flask import Flask, render_template, request, redirect, url_for, session
-from functools import wraps
-from flask_sqlalchemy import SQLAlchemy
 import traceback
+from functools import wraps
+from dotenv import load_dotenv
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+# Charge les variables d'environnement du fichier .env pour le développement local
+load_dotenv()
 
 # --- CONFIGURATION DE L'APPLICATION ---
 app = Flask(__name__)
 
-# --- CONFIGURATION DES SECRETS (lecture depuis les variables d'environnement) ---
+# --- CONFIGURATION DES SECRETS ---
+# Lit les secrets depuis les variables d'environnement (fichier .env en local, UI de Railway en production)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
-SPOTIPY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
-SPOTIPY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
-YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
-# --- CONFIGURATION DE LA BASE DE DONNÉES (dynamique) ---
+# --- CONFIGURATION DE LA BASE DE DONNÉES ---
+# S'adapte automatiquement à l'environnement (SQLite en local, PostgreSQL en production)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///links.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# --- INITIALISATION DES EXTENSIONS ---
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
 
 # --- MODÈLE DE LA BASE DE DONNÉES ---
 class LinkPage(db.Model):
@@ -31,6 +38,7 @@ class LinkPage(db.Model):
     artist_name = db.Column(db.String(200), nullable=False)
     album_cover_url = db.Column(db.String(500), nullable=True)
     item_type = db.Column(db.String(50), nullable=False, default='Track')
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
     spotify_url = db.Column(db.String(500), nullable=True)
     youtube_url = db.Column(db.String(500), nullable=True)
     itunes_url = db.Column(db.String(500), nullable=True)
@@ -42,12 +50,11 @@ class LinkPage(db.Model):
     steam_description = db.Column(db.Text, nullable=True)
     vgmdb_url = db.Column(db.String(500), nullable=True)
 
-    # NOUVELLE COLONNE POUR LA DATE DE CREATION
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
     def __repr__(self):
         return f'<LinkPage {self.slug}>'
 
-# --- DÉCORATEUR DE SÉCURITÉ (modifié) ---
+
+# --- DÉCORATEUR DE SÉCURITÉ ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -56,7 +63,8 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- ROUTES DE L'APPLICATION ---
+
+# --- ROUTES D'AUTHENTIFICATION ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -64,47 +72,45 @@ def login():
         if ADMIN_PASSWORD and request.form['password'] == ADMIN_PASSWORD:
             session['logged_in'] = True
             next_url = request.args.get('next')
-            # Si l'URL demandée était la page de création, on redirige vers le dashboard admin
-            if next_url and '/creer' in next_url:
-                return redirect(url_for('admin_dashboard'))
             return redirect(next_url or url_for('admin_dashboard'))
         else:
             error = 'Mot de passe incorrect.'
     return render_template('login.html', error=error)
+
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# La racine du site redirige maintenant vers une URL externe
+
+# --- ROUTES PRINCIPALES ---
 @app.route('/')
 def public_home():
     return redirect("https://nowplaying.cool", code=302)
 
-# L'ancienne page d'accueil devient le "dashboard" de l'administration
+
 @app.route('/admin')
 @login_required
 def admin_dashboard():
     page = request.args.get('page', 1, type=int)
-    links = LinkPage.query.order_by(LinkPage.created_at.desc()).paginate(
-        page=page, per_page=50
-    )
+    links = LinkPage.query.order_by(LinkPage.created_at.desc()).paginate(page=page, per_page=50)
     return render_template('index.html', links=links)
 
-# La route pour créer un lien est maintenant sur /admin/creer
+
 @app.route('/creer', methods=['POST'])
 @login_required
 def creer_page_lien():
-    input_url = request.form.get('spotify_url') # Utilise .get pour plus de sécurité
+    input_url = request.form.get('spotify_url')
     if not input_url:
-        return redirect(url_for('admin_dashboard')) # Redirige si le formulaire est vide
+        return redirect(url_for('admin_dashboard'))
 
     songlink_api_url = f"https://api.song.link/v1-alpha.1/links?url={input_url}"
     try:
         response = requests.get(songlink_api_url)
         response.raise_for_status()
         data = response.json()
+        
         entity_id = data['entityUniqueId']
         item_type_raw = entity_id.split(':')[1] if ':' in entity_id else 'inconnu'
         page_data = data['entitiesByUniqueId'][entity_id]
@@ -115,21 +121,23 @@ def creer_page_lien():
             'nom_artiste': page_data.get('artistName'),
             'pochette': page_data.get('thumbnailUrl'),
         }
+        
         platform_map = {
             'spotify': 'lien_spotify', 'youtube': 'lien_youtube', 'appleMusic': 'lien_itunes',
             'tidal': 'lien_tidal', 'deezer': 'lien_deezer', 'qobuz': 'lien_qobuz',
             'bandcamp': 'lien_bandcamp'
         }
+        
         for platform_name, platform_data in data['linksByPlatform'].items():
             if platform_name in platform_map:
                 resultats[platform_map[platform_name]] = platform_data.get('url')
 
         return render_template('edition.html', resultats=resultats, mode='creation')
-
     except Exception as e:
         print(f"Une erreur interne est survenue: {e}")
         traceback.print_exc()
         return "Erreur : Impossible de trouver des liens pour cette URL. Verifiez le lien ou reessayez."
+
 
 @app.route('/edit/<slug>')
 @login_required
@@ -147,6 +155,7 @@ def page_edition(slug):
     }
     return render_template('edition.html', resultats=resultats, mode='edition')
 
+
 @app.route('/sauvegarder', methods=['POST'])
 @login_required
 def sauvegarder_lien():
@@ -154,24 +163,18 @@ def sauvegarder_lien():
     if not slug_form:
         return "Erreur : Le champ 'slug' est obligatoire."
 
-    # On vérifie si on est en mode édition
     if 'mode_edition' in request.form:
         slug_original = request.form['slug_original']
         page = LinkPage.query.get_or_404(slug_original)
-        
-        # Si le slug a changé, on vérifie que le nouveau n'est pas déjà pris
         if slug_original != slug_form:
             if LinkPage.query.get(slug_form):
                 return "Erreur : Ce nouveau slug est deja utilise par un autre lien."
-    
-    # Sinon, c'est une création
     else:
         if LinkPage.query.get(slug_form):
             return "Erreur : Cette URL personnalisee existe deja."
         page = LinkPage()
         db.session.add(page)
 
-    # Mise à jour ou assignation des champs pour la création ET l'édition
     page.slug = slug_form
     page.track_name = request.form.get('track_name')
     page.artist_name = request.form.get('artist_name')
@@ -191,23 +194,26 @@ def sauvegarder_lien():
     db.session.commit()
     return redirect(url_for('page_publique', slug=slug_form))
 
+
 @app.route('/<slug>')
 def page_publique(slug):
     page_data = LinkPage.query.get_or_404(slug)
-    return render_template('public_page.html', page=page_data, session=session)
+    plain_title = f"{page_data.track_name}, par {page_data.artist_name} - NOWPLAYING"
+    
+    if '(' in page_data.track_name and ')' in page_data.track_name:
+        parts = page_data.track_name.split('(', 1)
+        main_title = parts[0].strip()
+        subtitle_part = '(' + parts[1]
+        page_data.track_name = f"{main_title} <span class='subtitle'>{subtitle_part}</span>"
+        
+    return render_template('public_page.html', page=page_data, session=session, plain_title=plain_title)
 
-# On garde cette route secrète au cas où
-@app.route('/url-initialiser-ok')
-def init_database():
-    try:
-        with app.app_context():
-            db.create_all()
-        return "Tables de la base de donnees creees avec succes !"
-    except Exception as e:
-        return f"Une erreur est survenue: {e}"
 
+# --- COMMANDES CLI (pour la gestion locale/déploiement) ---
 @app.cli.command("init-db")
 def init_db_command():
+    """Cree les tables de la base de donnees."""
     with app.app_context():
         db.create_all()
     print("Base de donnees initialisee.")
+

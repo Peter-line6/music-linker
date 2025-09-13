@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.track_name }} - {{ page.artist_name }}</title>
+    <title>{{ plain_title }}</title>
 
     <meta name="description" content="Listen to music on your favorite streaming platform. A service by NOWPLAYING.">
-
     <meta property="og:title" content="{{ page.track_name }} by {{ page.artist_name }}">
     <meta property="og:description" content="Listen to music on your favorite streaming platform. A service by NOWPLAYING.">
     <meta property="og:image" content="{{ page.album_cover_url }}">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:type" content="website">
-
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ page.track_name }} by {{ page.artist_name }}">
     <meta name="twitter:description" content="Listen to music on your favorite platform. A service by NOWPLAYING.">
@@ -21,6 +19,7 @@
     {% if page.album_cover_url %}
         <link rel="icon" href="{{ page.album_cover_url }}">
     {% endif %}
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -33,6 +32,8 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
         }
         
         .blurred-background {
@@ -49,51 +50,47 @@
             z-index: -1;
             opacity: 0.8;
         }
-        
-        .header-content {
-            position: relative; /* Nécessaire pour superposer le texte */
-            text-align: center;
-            color: white; /* Le texte sera blanc sur l'image */
-            margin-bottom: 30px;
-        }
-img.album-cover { 
-            width: 100%; /* L'image prend toute la largeur */
-            height: auto;
-            display: block; 
-            /* On ne garde que les arrondis du haut */
-            border-radius: 12px 12px 0 0; 
-        }
-        .header-text {
-            /* On ajoute un fond et un espacement */
-            background-color: #ffffff;
-            padding: 25px;
-            text-align: center;
-            /* On arrondit les coins du bas pour suivre le conteneur */
-            border-radius: 0 0 12px 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Ombre légère pour séparer */
-        }
-        .header-text h1, .header-text h2 {
-            /* On s'assure que le texte a la bonne couleur */
-            color: #1c1e21; 
-        }
 
         .container { 
             max-width: 450px; 
             width: 100%;
             margin: 0; 
-            padding: 30px; 
             background: rgba(255, 255, 255, 0.9); 
             border-radius: 12px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
             position: relative;
             z-index: 1; 
+            overflow: hidden; /* Pour que les coins arrondis s'appliquent à l'artwork */
         }
 
+        .header-content {
+            /* Conteneur pour l'image et le texte */
+        }
+        
+        img.album-cover { 
+            width: 100%;
+            height: auto;
+            display: block; 
+        }
+
+        .header-text {
+            background-color: #ffffff;
+            padding: 25px;
+            text-align: center;
+        }
+        
         h1 {
             margin: 0 0 5px 0;
             color: #1c1e21;
             font-size: clamp(1.1em, 4vw, 1.6em);
-            text-align: center;
+        }
+
+        h1 span.subtitle {
+            display: block;
+            margin-top: 1px;
+            font-size: 0.9em;
+            font-weight: normal;
+            color: #878787;
         }
 
         h2 {
@@ -104,18 +101,15 @@ img.album-cover {
             margin-top: 0;
             margin-bottom: 10px;
         }
-        .cover-art {
-            display: block;
-            margin: 0 auto 30px auto;
-            max-width: 250px;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        
+        .content-body {
+            padding: 0 30px 30px 30px;
         }
+
         .platform-links {
             list-style: none;
             padding: 0;
-            margin-top: 30px;
+            margin: 0;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
@@ -153,7 +147,8 @@ img.album-cover {
 
         .admin-link {
             text-align: right;
-            margin-bottom: 20px;
+            padding: 15px 30px 0 30px;
+            font-size: 0.9em;
         }
         .admin-link a {
             color: #007bff;
@@ -161,64 +156,59 @@ img.album-cover {
             font-weight: bold;
             margin: 0 5px;
         }
-        .admin-link a:hover {
-            text-decoration: underline;
-        }
 
-.description-box {
+        .description-box {
             text-align: center;
             font-size: 0.9em;
             color: #555;
             background-color: #f9f9f9;
             padding: 15px;
             margin: 25px 0;
+            white-space: pre-line;
             font-style: italic;
-            /* On accentue l'arrondi des bords */
             border-radius: 8px; 
         }
 
-.info-link {
-        text-align: center;
-        margin-top: 30px;
-        margin-bottom: 30px;
-    }
-    .info-link a {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center; /* Centre le contenu horizontalement */
-        width: calc(50% - 20px); /* Prend 50% de la largeur du conteneur, moins l'espacement */
-        max-width: 250px; /* Limite la largeur max comme les autres boutons */
-        text-decoration: none;
-        color: #333; /* Couleur de texte plus foncée */
-        font-weight: bold; /* Texte en gras */
-        font-style: normal; /* Pas d'italique */
-        font-size: 0.9em;
-        padding: 12px 15px; /* Augmente le padding */
-        border: 1px solid #ffffff; /* Une bordure légère */
-        border-radius: 8px; /* Bords arrondis */
-        background-color: #fff; /* Fond blanc */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Une légère ombre */
-        transition: all 0.2s ease;
-    }
-    .info-link a:hover {
-        background-color: #f0f0f0;
-        transform: translateY(-2px); /* Petit effet de survol */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    /* S'assurer que l'icône VGMdb dans ce bloc est bien alignée */
-.info-link a .icon-vgmdb {
-        margin-left: 10px; /* Plus d'espace à gauche */
-        margin-right: -2px; /* Recule légèrement à droite pour compenser le padding de l'icône */
-        vertical-align: middle;
-        transform: scale(1.1); /* J'ai légèrement réduit la taille pour un meilleur équilibre visuel */
-    }
+        .info-link {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .info-link a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: calc(50% - 20px);
+            max-width: 250px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            font-style: normal;
+            font-size: 1em;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .info-link a:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .info-link a .icon-vgmdb {
+            margin-left: 10px;
+            margin-right: -2px;
+            vertical-align: middle;
+            transform: scale(1.1);
+        }
 
-hr.custom-hr {
-            border: none; /* On retire le style par défaut de la balise hr */
-            height: 1px; /* Une ligne très fine */
-            width: 40%;  /* Qui occupe 40% de la largeur */
-            background-color: #ddd; /* De couleur gris clair */
-            margin: 40px auto; /* 40px d'espace vertical, et centrage horizontal */
+        hr.custom-hr {
+            border: none;
+            height: 1px;
+            width: 40%;
+            background-color: #ddd;
+            margin: 40px auto;
         }
 
         .footer {
@@ -245,8 +235,9 @@ hr.custom-hr {
             vertical-align: middle;
             transition: filter 0.2s ease;
         }
+        /* ... Vos URLs d'icônes ici ... */
         .icon-spotify { background-image: url("https://www.scdn.co/i/_global/favicon.png"); }
-        .icon-youtube { background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/6a/Youtube_Music_icon.svg"); /* ... */ }
+        .icon-youtube { background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/6a/Youtube_Music_icon.svg"); }
         .icon-itunes, .icon-appleMusic { background-image: url("https://www.apple.com/favicon.ico"); }
         .icon-tidal { background-image: url("https://tidal.com/favicon.ico"); }
         .icon-deezer { background-image: url("https://www.deezer.com/favicon.ico"); }
@@ -254,21 +245,12 @@ hr.custom-hr {
         .icon-bandcamp { background-image: url("https://favicon.im/fr/bandcamp.com"); }
         .icon-vgmdb { background-image: url("https://vgmdb.net/favicon.ico"); }
         .icon-steam { background-image: url("https://store.steampowered.com/favicon.ico"); }
-        .icon-default { background-image: url("data:image/svg+xml,..."); }
         
-        /* Styles pour le survol (hover) */
         .platform-links li a:hover {
-            color: #ffffff; /* Le texte devient blanc au survol */
+            color: #ffffff;
         }
-
-        /* Par défaut, on ne fait rien pour les icônes au survol, */
-        /* et on n'applique le filtre que si l'icône est noire/sombre */
-
-        /* Cas spécifiques où l'icône est normalement sombre et doit devenir blanche */
-        .platform-links li a.spotify:hover .icon-spotify,
-        .platform-links li a.deezer:hover .icon-deezer
-        {
-            filter: brightness(0) invert(1); /* Rendre blanc */
+        .platform-links li a:hover span[class^="icon-"] {
+            filter: brightness(0) invert(1);
         }
 
         .platform-links li a.spotify:hover { background-color: #1DB954; }
@@ -280,7 +262,6 @@ hr.custom-hr {
         .platform-links li a.bandcamp:hover { background-color: #1DA0C3; }
         .platform-links li a.steam:hover { background-color: #1b2838; }
         .platform-links li a.vgmdb:hover { background-color: #3C649C; }
-
     </style>
 </head>
 <body>
@@ -289,8 +270,9 @@ hr.custom-hr {
     {% endif %}
 
     <div class="container">
+        
         {% if session.get('logged_in') %}
-<div class="admin-link">
+            <div class="admin-link">
                 <a href="{{ url_for('admin_dashboard') }}">Tableau de Bord</a> |
                 <a href="{{ url_for('page_edition', slug=page.slug) }}">Éditer ce lien</a> |
                 <a href="{{ url_for('logout') }}">Se déconnecter</a>
@@ -302,56 +284,58 @@ hr.custom-hr {
                 <img src="{{ page.album_cover_url }}" alt="Pochette" class="album-cover">
             {% endif %}
             <div class="header-text">
-                <h1 id="main-title">{{ page.track_name }}</h1>
+                <h1 id="main-title">{{ page.track_name | safe }}</h1>
                 <h2>{{ page.artist_name }}</h2>
             </div>
         </div>
-
-        {% if page.steam_description %}
-            <div class="description-box">
-                {{ page.steam_description|trim }}
-            </div>
-
-            {# NOUVEAU BLOC POUR VGMDB #}
-{% if page.vgmdb_url %}
-<div class="info-link">
-    <a href="{{ page.vgmdb_url }}" target="_blank">
-        Learn more on VGMdB<span class="icon-vgmdb"></span>
-    </a>
-</div>
-{% endif %}
-            <hr class="custom-hr">
-        {% endif %}
-
-        <ul class="platform-links">
-            {% if page.spotify_url %}
-                <li><a href="{{ page.spotify_url }}" class="spotify" target="_blank"><span class="icon-spotify"></span>Spotify</a></li>
-            {% endif %}
-            {% if page.youtube_url %}
-                <li><a href="{{ page.youtube_url }}" class="youtube" target="_blank"><span class="icon-youtube"></span>YouTube</a></li>
-            {% endif %}
-            {% if page.itunes_url %}
-                <li><a href="{{ page.itunes_url }}" class="itunes" target="_blank"><span class="icon-itunes"></span>Apple Music</a></li>
-            {% endif %}
-            {% if page.tidal_url %}
-                <li><a href="{{ page.tidal_url }}" class="tidal" target="_blank"><span class="icon-tidal"></span>Tidal</a></li>
-            {% endif %}
-            {% if page.deezer_url %}
-                <li><a href="{{ page.deezer_url }}" class="deezer" target="_blank"><span class="icon-deezer"></span>Deezer</a></li>
-            {% endif %}
-            {% if page.qobuz_url %}
-                <li><a href="{{ page.qobuz_url }}" class="qobuz" target="_blank"><span class="icon-qobuz"></span>Qobuz</a></li>
-            {% endif %}
-            {% if page.bandcamp_url %}
-                <li><a href="{{ page.bandcamp_url }}" class="bandcamp" target="_blank"><span class="icon-bandcamp"></span>Bandcamp</a></li>
-            {% endif %}
-            {% if page.steam_url %}
-                <li><a href="{{ page.steam_url }}" class="steam" target="_blank"><span class="icon-steam"></span>Steam</a></li>
-            {% endif %}
-        </ul>
         
-        <div class="footer">
-            Powered by <a href="https://nowplaying.cool/patreon" target="_blank"><img src="{{ url_for('static', filename='images/logo-np.png') }}" alt="Logo"></a>
+        <div class="content-body">
+            {% if page.steam_description %}
+                <div class="description-box">
+                    {{ page.steam_description|trim }}
+                </div>
+            {% endif %}
+
+            {% if page.vgmdb_url %}
+                <div class="info-link">
+                    <a href="{{ page.vgmdb_url }}" target="_blank">
+                        Learn more on VGMdB<span class="icon-vgmdb"></span>
+                    </a>
+                </div>
+            {% endif %}
+
+            <hr class="custom-hr">
+
+            <ul class="platform-links">
+                {% if page.spotify_url %}
+                    <li><a href="{{ page.spotify_url }}" class="spotify" target="_blank"><span class="icon-spotify"></span>Spotify</a></li>
+                {% endif %}
+                {% if page.youtube_url %}
+                    <li><a href="{{ page.youtube_url }}" class="youtube" target="_blank"><span class="icon-youtube"></span>YouTube</a></li>
+                {% endif %}
+                {% if page.itunes_url %}
+                    <li><a href="{{ page.itunes_url }}" class="itunes" target="_blank"><span class="icon-itunes"></span>Apple Music</a></li>
+                {% endif %}
+                {% if page.tidal_url %}
+                    <li><a href="{{ page.tidal_url }}" class="tidal" target="_blank"><span class="icon-tidal"></span>Tidal</a></li>
+                {% endif %}
+                {% if page.deezer_url %}
+                    <li><a href="{{ page.deezer_url }}" class="deezer" target="_blank"><span class="icon-deezer"></span>Deezer</a></li>
+                {% endif %}
+                {% if page.qobuz_url %}
+                    <li><a href="{{ page.qobuz_url }}" class="qobuz" target="_blank"><span class="icon-qobuz"></span>Qobuz</a></li>
+                {% endif %}
+                {% if page.bandcamp_url %}
+                    <li><a href="{{ page.bandcamp_url }}" class="bandcamp" target="_blank"><span class="icon-bandcamp"></span>Bandcamp</a></li>
+                {% endif %}
+                {% if page.steam_url %}
+                    <li><a href="{{ page.steam_url }}" class="steam" target="_blank"><span class="icon-steam"></span>Steam</a></li>
+                {% endif %}
+            </ul>
+            
+            <div class="footer">
+                Powered by <a href="https://nowplaying.cool/patreon" target="_blank"><img src="{{ url_for('static', filename='images/logo-np.png') }}" alt="Logo"></a>
+            </div>
         </div>
     </div>
 </body>
