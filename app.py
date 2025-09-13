@@ -1,9 +1,10 @@
 import os
 import requests
 import traceback
+import uuid # Pour générer des slugs aléatoires
 from functools import wraps
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -17,6 +18,7 @@ app = Flask(__name__)
 # Lit les secrets depuis les variables d'environnement (fichier .env en local, UI de Railway en production)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+INTERNAL_API_KEY = os.environ.get('INTERNAL_API_KEY')
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES ---
 # S'adapte automatiquement à l'environnement (SQLite en local, PostgreSQL en production)
@@ -207,6 +209,64 @@ def page_publique(slug):
         page_data.track_name = f"{main_title} <span class='subtitle'>{subtitle_part}</span>"
         
     return render_template('public_page.html', page=page_data, session=session, plain_title=plain_title)
+
+    # --- NOUVELLE ROUTE API POUR LE RACCOURCI IOS ---
+@app.route('/api/create-from-url')
+def api_create_from_url():
+    # 1. Sécurité : On vérifie la clé d'API
+    provided_key = request.args.get('apikey')
+    if not INTERNAL_API_KEY or provided_key != INTERNAL_API_KEY:
+        return jsonify({"error": "Clé d'API invalide ou manquante"}), 401
+
+    # 2. On récupère l'URL partagée
+    input_url = request.args.get('url')
+    if not input_url:
+        return jsonify({"error": "URL manquante"}), 400
+
+    # 3. On appelle Songlink
+    songlink_api_url = f"https://api.song.link/v1-alpha.1/links?url={input_url}"
+    try:
+        response = requests.get(songlink_api_url)
+        response.raise_for_status()
+        data = response.json()
+        
+        entity_id = data['entityUniqueId']
+        item_type_raw = entity_id.split(':')[1] if ':' in entity_id else 'inconnu'
+        page_data = data['entitiesByUniqueId'][entity_id]
+        
+        # 4. On crée une nouvelle entrée dans la base de données avec un slug aléatoire
+        new_slug = str(uuid.uuid4())[:8]
+        
+        nouvelle_page = LinkPage(
+            slug=new_slug,
+            track_name=page_data.get('title', 'Titre inconnu'),
+            artist_name=page_data.get('artistName', 'Artiste inconnu'),
+            album_cover_url=page_data.get('thumbnailUrl'),
+            item_type=item_type_raw.capitalize(),
+        )
+        
+        # On ajoute les liens trouvés
+        platform_map = {
+            'spotify': 'spotify_url', 'youtube': 'youtube_url', 'appleMusic': 'itunes_url',
+            'tidal': 'tidal_url', 'deezer': 'deezer_url', 'qobuz': 'qobuz_url',
+            'bandcamp': 'bandcamp_url'
+        }
+        for platform_name, platform_data in data['linksByPlatform'].items():
+            if platform_name in platform_map:
+                db_field = platform_map[platform_name]
+                setattr(nouvelle_page, db_field, platform_data.get('url'))
+        
+        db.session.add(nouvelle_page)
+        db.session.commit()
+
+        # 5. On redirige le navigateur vers la page d'édition
+        edit_url = url_for('page_edition', slug=new_slug, _external=True)
+        return redirect(edit_url)
+
+    except Exception as e:
+        print(f"Erreur API: {e}")
+        traceback.print_exc()
+        return jsonify({"error": "Impossible de traiter le lien"}), 500
 
 
 # --- COMMANDES CLI (pour la gestion locale/déploiement) ---
