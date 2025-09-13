@@ -27,9 +27,13 @@
             {% endif %}
             
             <div class="form-group">
-                <label for="track_name">{{ resultats.item_type }}</label>
+                <div class="label-with-action">
+                    <label for="track_name">{{ resultats.item_type }}</label>
+                    <a href="#" id="search-launcher" class="search-launcher">🔍 Lancer la recherche</a>
+                </div>
                 <input type="text" id="track_name" name="track_name" value="{{ resultats.nom_chanson or '' }}">
             </div>
+
             <div class="form-group">
                 <label for="artist_name">Artiste</label>
                 <input type="text" id="artist_name" name="artist_name" value="{{ resultats.nom_artiste or '' }}">
@@ -93,5 +97,28 @@
             <button type="submit">Sauvegarder les modifications</button>
         </form>
     </div>
+    <script>
+        document.getElementById('search-launcher').addEventListener('click', function(event) {
+            event.preventDefault(); // Empêche le lien de remonter la page
+
+            const trackName = document.getElementById('track_name').value;
+            const artistName = document.getElementById('artist_name').value;
+            const searchQuery = encodeURIComponent(artistName + ' ' + trackName);
+
+            const urls = [
+                `https://music.youtube.com/search?q=${searchQuery}`,
+                `https://listen.tidal.com/search?q=${searchQuery}`,
+                `https://www.deezer.com/search/${searchQuery}`,
+                'https://play.qobuz.com/search/all', // Qobuz ne prend pas de paramètre de recherche direct
+                `https://music.apple.com/us/search?term=${searchQuery}`,
+                `https://bandcamp.com/search?q=${searchQuery}`,
+                `https://store.steampowered.com/search/?term=${searchQuery}`
+            ];
+
+            urls.forEach(url => {
+                window.open(url, '_blank');
+            });
+        });
+    </script>
 </body>
 </html>
