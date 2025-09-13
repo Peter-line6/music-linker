@@ -7,7 +7,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f0f2f5; padding: 20px;}
         .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; }
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
-        button { padding: 12px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%;}
+        button[type="submit"] { padding: 12px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%;}
         h1, h2 { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 30px;}
         .logout-link { position: absolute; top: 20px; right: 20px; font-size: 0.9em; text-decoration: none; color: #65676b; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
@@ -17,21 +17,22 @@
         .pagination { margin-top: 30px; text-align: center; }
         .pagination a { margin: 0 10px; text-decoration: none; color: #007bff; }
         .pagination span { margin: 0 10px; color: #999; }
+        td a img:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: all 0.2s ease; }
+        .copy-cell { cursor: pointer; transition: background-color 0.2s ease-in-out; }
+        .copy-cell:hover { background-color: #f9f9f9; }
+        .copy-cell.copied { background-color: #d4edda; }
         
-        td a img:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: all 0.2s ease;
-        }
-        .copy-cell {
+        /* Styles pour la colonne Actions */
+        .actions-cell { text-align: center; white-space: nowrap; }
+        .actions-cell a { text-decoration: none; font-size: 1.5em; vertical-align: middle; margin: 0 8px; }
+        .delete-btn {
+            background: none;
+            border: none;
             cursor: pointer;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .copy-cell:hover {
-            background-color: #f9f9f9;
-        }
-        .copy-cell.copied {
-            background-color: #d4edda;
+            padding: 0;
+            font-size: 1.5em;
+            vertical-align: middle;
+            margin: 0 8px;
         }
     </style>
 </head>
@@ -57,9 +58,9 @@
                 <tr>
                     <th>Pochette</th>
                     <th>Titre / Artiste</th>
-                    <th>Type</th>
+                    <th>Date</th>
                     <th>Slug</th>
-                    <th>Actions</th>
+                    <th style="text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,21 +76,30 @@
                     <td class="copy-cell" data-url="{{ url_for('public_home', _external=True) }}{{ link.slug }}" title="Cliquer pour copier l'URL">
                         <strong>{{ link.track_name }}</strong><br><small>{{ link.artist_name }}</small>
                     </td>
-                    <td>{{ link.item_type }}</td>
+                    <td><small>{{ link.created_at.strftime('%d/%m/%Y') if link.created_at else 'N/A' }}</small></td>
                     <td><a href="{{ url_for('page_publique', slug=link.slug) }}" target="_blank">/{{ link.slug }}</a></td>
-                    <td><a href="{{ url_for('page_edition', slug=link.slug) }}">Éditer</a></td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('page_edition', slug=link.slug) }}" title="Éditer">✏️</a>
+                        <!-- Formulaire de suppression avec confirmation -->
+                        <form action="{{ url_for('delete_link', slug=link.slug) }}" method="post" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce lien ?');">
+                            <button type="submit" class="delete-btn" title="Supprimer">🗑️</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
+        <!-- Logique de pagination -->
         <div class="pagination">
             {% if links.has_prev %}
                 <a href="{{ url_for('admin_dashboard', page=links.prev_num) }}">&laquo; Page Précédente</a>
             {% else %}
                 <span>&laquo; Page Précédente</span>
             {% endif %}
+            
             <span>Page {{ links.page }} sur {{ links.pages }}</span>
+
             {% if links.has_next %}
                 <a href="{{ url_for('admin_dashboard', page=links.next_num) }}">Page Suivante &raquo;</a>
             {% else %}
@@ -98,24 +108,25 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const copyCells = document.querySelectorAll('.copy-cell');
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const copyCells = document.querySelectorAll('.copy-cell');
 
-            copyCells.forEach(cell => {
-                cell.addEventListener('click', function() {
-                    const urlToCopy = this.dataset.url;
-                    navigator.clipboard.writeText(urlToCopy).then(() => {
-                        this.classList.add('copied');
-                        setTimeout(() => {
-                            this.classList.remove('copied');
-                        }, 1500);
-                    }).catch(err => {
-                        console.error('Erreur lors de la copie: ', err);
-                    });
+        copyCells.forEach(cell => {
+            cell.addEventListener('click', function() {
+                const urlToCopy = this.dataset.url;
+                navigator.clipboard.writeText(urlToCopy).then(() => {
+                    this.classList.add('copied');
+                    setTimeout(() => {
+                        this.classList.remove('copied');
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Erreur lors de la copie: ', err);
                 });
             });
         });
-    </script>
+    });
+</script>
 </body>
 </html>
+

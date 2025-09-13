@@ -196,6 +196,16 @@ def sauvegarder_lien():
     db.session.commit()
     return redirect(url_for('page_publique', slug=slug_form))
 
+    @app.route('/delete/<slug>', methods=['POST'])
+@login_required
+def delete_link(slug):
+    """Supprime un lien de la base de données."""
+    link_to_delete = LinkPage.query.get_or_404(slug)
+    db.session.delete(link_to_delete)
+    db.session.commit()
+    # Redirige vers le tableau de bord après la suppression
+    return redirect(url_for('admin_dashboard'))
+
 
 @app.route('/<slug>')
 def page_publique(slug):
