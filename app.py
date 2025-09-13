@@ -1,27 +1,25 @@
 import os
 import requests
 import traceback
-import uuid # Pour générer des slugs aléatoires
+import uuid
 from functools import wraps
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-# Charge les variables d'environnement du fichier .env pour le développement local
+# Charge les variables d'environnement pour le développement local
 load_dotenv()
 
 # --- CONFIGURATION DE L'APPLICATION ---
 app = Flask(__name__)
 
 # --- CONFIGURATION DES SECRETS ---
-# Lit les secrets depuis les variables d'environnement (fichier .env en local, UI de Railway en production)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 INTERNAL_API_KEY = os.environ.get('INTERNAL_API_KEY')
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES ---
-# S'adapte automatiquement à l'environnement (SQLite en local, PostgreSQL en production)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -86,7 +84,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-# --- ROUTES PRINCIPALES ---
+# --- ROUTES PUBLIQUES ET D'ADMINISTRATION ---
 @app.route('/')
 def public_home():
     return redirect("https://nowplaying.cool", code=302)
@@ -135,6 +133,7 @@ def creer_page_lien():
                 resultats[platform_map[platform_name]] = platform_data.get('url')
 
         return render_template('edition.html', resultats=resultats, mode='creation')
+
     except Exception as e:
         print(f"Une erreur interne est survenue: {e}")
         traceback.print_exc()
@@ -168,9 +167,8 @@ def sauvegarder_lien():
     if 'mode_edition' in request.form:
         slug_original = request.form['slug_original']
         page = LinkPage.query.get_or_404(slug_original)
-        if slug_original != slug_form:
-            if LinkPage.query.get(slug_form):
-                return "Erreur : Ce nouveau slug est deja utilise par un autre lien."
+        if slug_original != slug_form and LinkPage.query.get(slug_form):
+            return "Erreur : Ce nouveau slug est deja utilise par un autre lien."
     else:
         if LinkPage.query.get(slug_form):
             return "Erreur : Cette URL personnalisee existe deja."
@@ -196,14 +194,13 @@ def sauvegarder_lien():
     db.session.commit()
     return redirect(url_for('page_publique', slug=slug_form))
 
-    @app.route('/delete/<slug>', methods=['POST'])
+
+@app.route('/delete/<slug>', methods=['POST'])
 @login_required
 def delete_link(slug):
-    """Supprime un lien de la base de données."""
     link_to_delete = LinkPage.query.get_or_404(slug)
     db.session.delete(link_to_delete)
     db.session.commit()
-    # Redirige vers le tableau de bord après la suppression
     return redirect(url_for('admin_dashboard'))
 
 
@@ -220,20 +217,18 @@ def page_publique(slug):
         
     return render_template('public_page.html', page=page_data, session=session, plain_title=plain_title)
 
-    # --- NOUVELLE ROUTE API POUR LE RACCOURCI IOS ---
+
+# --- ROUTE API POUR LE RACCOURCI IOS ---
 @app.route('/api/create-from-url')
 def api_create_from_url():
-    # 1. Sécurité : On vérifie la clé d'API
     provided_key = request.args.get('apikey')
     if not INTERNAL_API_KEY or provided_key != INTERNAL_API_KEY:
         return jsonify({"error": "Clé d'API invalide ou manquante"}), 401
 
-    # 2. On récupère l'URL partagée
     input_url = request.args.get('url')
     if not input_url:
         return jsonify({"error": "URL manquante"}), 400
 
-    # 3. On appelle Songlink
     songlink_api_url = f"https://api.song.link/v1-alpha.1/links?url={input_url}"
     try:
         response = requests.get(songlink_api_url)
@@ -244,7 +239,6 @@ def api_create_from_url():
         item_type_raw = entity_id.split(':')[1] if ':' in entity_id else 'inconnu'
         page_data = data['entitiesByUniqueId'][entity_id]
         
-        # 4. On crée une nouvelle entrée dans la base de données avec un slug aléatoire
         new_slug = str(uuid.uuid4())[:8]
         
         nouvelle_page = LinkPage(
@@ -255,7 +249,6 @@ def api_create_from_url():
             item_type=item_type_raw.capitalize(),
         )
         
-        # On ajoute les liens trouvés
         platform_map = {
             'spotify': 'spotify_url', 'youtube': 'youtube_url', 'appleMusic': 'itunes_url',
             'tidal': 'tidal_url', 'deezer': 'deezer_url', 'qobuz': 'qobuz_url',
@@ -269,10 +262,8 @@ def api_create_from_url():
         db.session.add(nouvelle_page)
         db.session.commit()
 
-        # 5. On redirige le navigateur vers la page d'édition
         edit_url = url_for('page_edition', slug=new_slug, _external=True)
         return redirect(edit_url)
-
     except Exception as e:
         print(f"Erreur API: {e}")
         traceback.print_exc()
